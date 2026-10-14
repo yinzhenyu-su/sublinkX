@@ -21,13 +21,13 @@ import (
 type SubSource struct {
 	gorm.Model
 	ID            int
-	Name          string    // 显示名
-	URL           string    // 源地址
-	UA            string    // 抓取用 UA（默认 mihomo/1.19.31，避免拿到 HTML 订阅页）
-	SubcriptionID int       // 绑定订阅（一对一）
-	Group         string    // 导入节点归属分组，默认 my
-	Interval      int       // 刷新间隔（秒），默认 600
-	Prune         bool      // 源里消失的节点是否从订阅移除（默认 false）
+	Name          string // 显示名
+	URL           string // 源地址
+	UA            string // 抓取用 UA（默认 mihomo/1.19.31，避免拿到 HTML 订阅页）
+	SubcriptionID int    // 绑定订阅（一对一）
+	Group         string // 导入节点归属分组，默认 my
+	Interval      int    // 刷新间隔（秒），默认 600
+	Prune         bool   // 源里消失的节点是否从订阅移除（默认 false）
 	Enabled       bool
 	LastAt        time.Time // 上次「尝试」刷新时间（失败也推进，用于退避）
 	LastOK        bool
