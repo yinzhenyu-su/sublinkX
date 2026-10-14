@@ -1,0 +1,292 @@
+[
+  {
+    "dns": {
+      "queryStrategy": "UseIP",
+      "servers": [
+        {
+          "address": "8.8.8.8",
+          "skipFallback": false
+        }
+      ],
+      "tag": "dns_out"
+    },
+    "inbounds": [
+      {
+        "listen": "127.0.0.1",
+        "port": 10808,
+        "protocol": "socks",
+        "settings": {
+          "auth": "noauth",
+          "udp": true,
+          "userLevel": 8
+        },
+        "sniffing": {
+          "destOverride": [
+            "http",
+            "tls",
+            "quic",
+            "fakedns"
+          ],
+          "enabled": true
+        },
+        "tag": "mixed"
+      },
+      {
+        "listen": "127.0.0.1",
+        "port": 10809,
+        "protocol": "http",
+        "settings": {
+          "userLevel": 8
+        },
+        "tag": "http"
+      }
+    ],
+    "log": {
+      "loglevel": "warning"
+    },
+    "outbounds": [
+      {
+        "protocol": "vless",
+        "tag": "proxy",
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "tlsSettings": {
+            "alpn": [
+              "h3",
+              "h2",
+              "http/1.1"
+            ],
+            "fingerprint": "safari",
+            "serverName": "node.example.com"
+          },
+          "wsSettings": {
+            "headers": {},
+            "heartbeatPeriod": 0,
+            "host": "node.example.com",
+            "path": "/ws"
+          }
+        },
+        "mux": {
+          "enabled": true,
+          "concurrency": 8,
+          "xudpConcurrency": 16,
+          "xudpProxyUDP443": "reject"
+        },
+        "settings": {
+          "address": "node.example.com",
+          "encryption": "none",
+          "id": "11111111-1111-1111-1111-111111111111",
+          "level": 8,
+          "port": 56879
+        }
+      },
+      {
+        "protocol": "freedom",
+        "settings": {
+          "noises": [],
+          "redirect": ""
+        },
+        "tag": "direct"
+      },
+      {
+        "protocol": "blackhole",
+        "settings": {
+          "response": {
+            "type": "http"
+          }
+        },
+        "tag": "block"
+      }
+    ],
+    "policy": {
+      "levels": {
+        "8": {
+          "connIdle": 300,
+          "downlinkOnly": 1,
+          "handshake": 4,
+          "uplinkOnly": 1
+        }
+      },
+      "system": {
+        "statsOutboundDownlink": true,
+        "statsOutboundUplink": true
+      }
+    },
+    "remarks": "node-ws-with-host",
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "domain": [
+            "geosite:category-ir",
+            "geosite:cn",
+            "geosite:apple"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "ip": [
+            "geoip:private",
+            "geoip:ir",
+            "geoip:cn"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "network": "tcp,udp",
+          "outboundTag": "proxy",
+          "type": "field"
+        }
+      ]
+    },
+    "stats": {}
+  },
+  {
+    "dns": {
+      "queryStrategy": "UseIP",
+      "servers": [
+        {
+          "address": "8.8.8.8",
+          "skipFallback": false
+        }
+      ],
+      "tag": "dns_out"
+    },
+    "inbounds": [
+      {
+        "listen": "127.0.0.1",
+        "port": 10808,
+        "protocol": "socks",
+        "settings": {
+          "auth": "noauth",
+          "udp": true,
+          "userLevel": 8
+        },
+        "sniffing": {
+          "destOverride": [
+            "http",
+            "tls",
+            "quic",
+            "fakedns"
+          ],
+          "enabled": true
+        },
+        "tag": "mixed"
+      },
+      {
+        "listen": "127.0.0.1",
+        "port": 10809,
+        "protocol": "http",
+        "settings": {
+          "userLevel": 8
+        },
+        "tag": "http"
+      }
+    ],
+    "log": {
+      "loglevel": "warning"
+    },
+    "outbounds": [
+      {
+        "protocol": "vless",
+        "tag": "proxy",
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "tlsSettings": {
+            "alpn": [
+              "h2",
+              "http/1.1",
+              "h3"
+            ],
+            "fingerprint": "chrome",
+            "serverName": "node.example.com"
+          },
+          "wsSettings": {
+            "headers": {},
+            "heartbeatPeriod": 0,
+            "host": "",
+            "path": "/ws"
+          }
+        },
+        "mux": {
+          "enabled": true,
+          "concurrency": 8,
+          "xudpConcurrency": 16,
+          "xudpProxyUDP443": "reject"
+        },
+        "settings": {
+          "address": "node.example.com",
+          "encryption": "none",
+          "id": "11111111-1111-1111-1111-111111111111",
+          "level": 8,
+          "port": 19212
+        }
+      },
+      {
+        "protocol": "freedom",
+        "settings": {
+          "noises": [],
+          "redirect": ""
+        },
+        "tag": "direct"
+      },
+      {
+        "protocol": "blackhole",
+        "settings": {
+          "response": {
+            "type": "http"
+          }
+        },
+        "tag": "block"
+      }
+    ],
+    "policy": {
+      "levels": {
+        "8": {
+          "connIdle": 300,
+          "downlinkOnly": 1,
+          "handshake": 4,
+          "uplinkOnly": 1
+        }
+      },
+      "system": {
+        "statsOutboundDownlink": true,
+        "statsOutboundUplink": true
+      }
+    },
+    "remarks": "node-ws-without-host",
+    "routing": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "domain": [
+            "geosite:category-ir",
+            "geosite:cn",
+            "geosite:apple"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "ip": [
+            "geoip:private",
+            "geoip:ir",
+            "geoip:cn"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "network": "tcp,udp",
+          "outboundTag": "proxy",
+          "type": "field"
+        }
+      ]
+    },
+    "stats": {}
+  }
+]

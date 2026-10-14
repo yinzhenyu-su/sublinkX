@@ -147,6 +147,7 @@ func Run(port int) {
 	routers.Mentus(r)
 	routers.Subcription(r)
 	routers.Nodes(r)
+	routers.Sources(r)
 	routers.Clients(r)
 	routers.Total(r)
 	routers.Templates(r)

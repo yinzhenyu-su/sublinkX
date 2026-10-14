@@ -5,9 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"strings"
 	"sublink/models"
@@ -44,6 +42,8 @@ func GetClient(c *gin.Context) {
 		SunName = sub.Name
 		//查找token的md5是否匹配并且转换成小写
 		if Md5(SunName) == strings.ToLower(token) {
+			// 订阅源：被请求时按间隔惰性刷新（失败只记录，不影响订阅响应）
+			models.RefreshForSubcription(&sub)
 			// 判断是否带客户端参数
 			switch ClientIndex {
 			case "clash":
@@ -125,15 +125,14 @@ func GetV2ray(c *gin.Context) {
 			continue
 		//如果是订阅转换
 		case strings.Contains(v.Link, "http://") || strings.Contains(v.Link, "https://"):
-			resp, err := http.Get(v.Link)
+			// 上游订阅：支持 Xray JSON 与 base64 两种格式；抓取失败只跳过该节点，
+			// 不让整个订阅失败（旧代码这里会直接 return）
+			links, err := models.FetchSourceLinks(v.Link, "")
 			if err != nil {
-				log.Println(err)
-				return
+				log.Println("抓取上游订阅失败，跳过该节点:", v.Link, err)
+				continue
 			}
-			defer resp.Body.Close()
-			body, _ := io.ReadAll(resp.Body)
-			nodes := node.Base64Decode(string(body))
-			baselist += nodes + "\n"
+			baselist += strings.Join(links, "\n") + "\n"
 		// 默认
 		default:
 			baselist += v.Link + "\n"
@@ -173,15 +172,13 @@ func GetClash(c *gin.Context) {
 			continue
 		//如果是订阅转换
 		case strings.Contains(v.Link, "http://") || strings.Contains(v.Link, "https://"):
-			resp, err := http.Get(v.Link)
+			// 上游订阅：支持 Xray JSON 与 base64 两种格式；抓取失败只跳过该节点，
+			// 不让整个订阅失败（旧代码这里会直接 return）
+			links, err := models.FetchSourceLinks(v.Link, "")
 			if err != nil {
-				log.Println(err)
-				return
+				log.Println("抓取上游订阅失败，跳过该节点:", v.Link, err)
+				continue
 			}
-			defer resp.Body.Close()
-			body, _ := io.ReadAll(resp.Body)
-			nodes := node.Base64Decode(string(body))
-			links := strings.Split(nodes, "\n")
 			urls = append(urls, links...)
 		// 默认
 		default:
@@ -232,15 +229,13 @@ func GetSurge(c *gin.Context) {
 			continue
 		//如果是订阅转换
 		case strings.Contains(v.Link, "http://") || strings.Contains(v.Link, "https://"):
-			resp, err := http.Get(v.Link)
+			// 上游订阅：支持 Xray JSON 与 base64 两种格式；抓取失败只跳过该节点，
+			// 不让整个订阅失败（旧代码这里会直接 return）
+			links, err := models.FetchSourceLinks(v.Link, "")
 			if err != nil {
-				log.Println(err)
-				return
+				log.Println("抓取上游订阅失败，跳过该节点:", v.Link, err)
+				continue
 			}
-			defer resp.Body.Close()
-			body, _ := io.ReadAll(resp.Body)
-			nodes := node.Base64Decode(string(body))
-			links := strings.Split(nodes, "\n")
 			urls = append(urls, links...)
 		// 默认
 		default:

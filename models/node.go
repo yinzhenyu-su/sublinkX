@@ -19,6 +19,7 @@ type Node struct {
 	ID         int
 	Name       string
 	Link       string
+	SourceID   int         `gorm:"index"`                       // 0 = 手动添加；>0 = 来自哪个订阅源
 	GroupNodes []GroupNode `gorm:"many2many:group_node_nodes"` // 反向关联字段
 }
 
