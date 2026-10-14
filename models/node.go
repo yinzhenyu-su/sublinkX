@@ -16,11 +16,12 @@ type GroupNode struct {
 
 type Node struct {
 	gorm.Model
-	ID         int
-	Name       string
-	Link       string
-	SourceID   int         `gorm:"index"`                       // 0 = 手动添加；>0 = 来自哪个订阅源
-	GroupNodes []GroupNode `gorm:"many2many:group_node_nodes"` // 反向关联字段
+	ID          int
+	Name        string
+	Link        string
+	SourceID    int         `gorm:"index"`                      // 0 = 手动添加；>0 = 来自哪个订阅源
+	SourceOwned bool        `gorm:"default:false"`              // true = 由订阅源创建；false = 源接管的手工节点
+	GroupNodes  []GroupNode `gorm:"many2many:group_node_nodes"` // 反向关联字段
 }
 
 // hook Node 写入创建删除修改 等写入权限

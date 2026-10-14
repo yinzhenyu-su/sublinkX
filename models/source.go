@@ -116,18 +116,32 @@ func (s *SubSource) Update(new *SubSource) error {
 	return DB.Save(&old).Error
 }
 
-// Del 删除源；delNodes=true 时同时删除该源导入的节点
+// Del 删除源；delNodes=true 时：删除「由本源创建」的节点，
+// 「接管来的原手工节点」只释放归属（SourceID 归零），不删除
 func (s *SubSource) Del(delNodes bool) error {
 	if delNodes {
 		var nodes []Node
 		if err := DB.Where("source_id = ?", s.ID).Find(&nodes).Error; err == nil {
+			var toDel []Node
 			for i := range nodes {
-				if err := nodes[i].Del(); err != nil {
-					log.Println("[订阅源] 删除节点失败:", nodes[i].Name, err)
+				if nodes[i].SourceOwned {
+					toDel = append(toDel, nodes[i])
+					continue
+				}
+				// 接管来的手工节点：只释放，不删
+				if err := DB.Model(&nodes[i]).Updates(map[string]interface{}{
+					"source_id": 0, "source_owned": false,
+				}).Error; err != nil {
+					log.Println("[订阅源] 释放接管节点失败:", nodes[i].Name, err)
 				}
 			}
-			if s.SubcriptionID > 0 {
-				if err := removeNodesFromSubcription(s.SubcriptionID, nodes); err != nil {
+			for i := range toDel {
+				if err := toDel[i].Del(); err != nil {
+					log.Println("[订阅源] 删除节点失败:", toDel[i].Name, err)
+				}
+			}
+			if s.SubcriptionID > 0 && len(toDel) > 0 {
+				if err := removeNodesFromSubcription(s.SubcriptionID, toDel); err != nil {
 					log.Println("[订阅源] 从订阅移除节点失败:", err)
 				}
 			}
@@ -301,12 +315,12 @@ func (s *SubSource) syncNodes(links []string) error {
 			case 0, s.ID:
 				// 手工节点 → 接管；本源节点 → 更新（理论上不会走到这里）
 				if err := DB.Model(other).Updates(map[string]interface{}{
-					"link": link, "name": name, "source_id": s.ID,
+					"link": link, "name": name, "source_id": s.ID, "source_owned": false,
 				}).Error; err != nil {
 					log.Println("[订阅源] 接管已有节点失败:", err)
 					continue
 				}
-				other.Link, other.Name, other.SourceID = link, name, s.ID
+				other.Link, other.Name, other.SourceID, other.SourceOwned = link, name, s.ID, false
 				adopted = append(adopted, *other)
 				if err := bindNodeToGroup(other, group); err != nil {
 					log.Println("[订阅源] 分组关联失败:", err)
@@ -318,7 +332,7 @@ func (s *SubSource) syncNodes(links []string) error {
 			continue
 		}
 
-		n := Node{Name: name, Link: link, SourceID: s.ID}
+		n := Node{Name: name, Link: link, SourceID: s.ID, SourceOwned: true}
 		if err := DB.Create(&n).Error; err != nil {
 			log.Println("[订阅源] 新增节点失败:", err)
 			continue

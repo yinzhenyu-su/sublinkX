@@ -368,6 +368,61 @@ func TestSyncNodesAdoptExistingManualNode(t *testing.T) {
 	}
 }
 
+// 删除源：本源创建的节点被删除；接管来的手工节点只释放归属，绝不误删
+func TestSourceDelSemantics(t *testing.T) {
+	setupTestDB(t)
+	sub := newTestSub(t, "t-sub-del")
+
+	manualLink := "vless://u1@a.com:443?type=tcp#m1"
+	manual := Node{Name: "m1", Link: manualLink}
+	if err := DB.Create(&manual).Error; err != nil {
+		t.Fatalf("创建手工节点失败: %v", err)
+	}
+	if err := DB.Model(&sub).Association("Nodes").Append(&manual); err != nil {
+		t.Fatalf("手工节点入订阅失败: %v", err)
+	}
+
+	s := SubSource{Name: "src-del", URL: "http://example.invalid/x", SubcriptionID: sub.ID, Group: "my", Enabled: true, Interval: 600}
+	if err := DB.Create(&s).Error; err != nil {
+		t.Fatalf("创建源失败: %v", err)
+	}
+	if err := s.syncNodes([]string{manualLink, "vless://u2@b.com:443?type=tcp#created-1"}); err != nil {
+		t.Fatalf("同步失败: %v", err)
+	}
+
+	var adopted, created Node
+	if err := DB.Where("name = ?", "m1").First(&adopted).Error; err != nil {
+		t.Fatalf("接管节点丢失: %v", err)
+	}
+	if err := DB.Where("name = ?", "created-1").First(&created).Error; err != nil {
+		t.Fatalf("新建节点丢失: %v", err)
+	}
+	if adopted.SourceOwned {
+		t.Errorf("接管的节点 SourceOwned 应为 false")
+	}
+	if !created.SourceOwned {
+		t.Errorf("源创建的节点 SourceOwned 应为 true")
+	}
+
+	// 删除源（delNodes=true）
+	if err := s.Del(true); err != nil {
+		t.Fatalf("删除源失败: %v", err)
+	}
+	var afterManual Node
+	if err := DB.Where("name = ?", "m1").First(&afterManual).Error; err != nil {
+		t.Errorf("接管来的手工节点不该被删除: %v", err)
+	} else if afterManual.SourceID != 0 {
+		t.Errorf("释放后 SourceID 应归零，实际 %d", afterManual.SourceID)
+	}
+	var cnt int64
+	if err := DB.Model(&Node{}).Where("name = ?", "created-1").Count(&cnt).Error; err != nil {
+		t.Fatalf("统计失败: %v", err)
+	}
+	if cnt != 0 {
+		t.Errorf("源创建的节点应被删除，实际仍存在 %d 个", cnt)
+	}
+}
+
 // LinkKey：改名不算换节点
 func TestLinkKey(t *testing.T) {
 	if got := LinkKey("vless://u@a.com:443?type=tcp#名字"); got != "vless://u@a.com:443?type=tcp" {

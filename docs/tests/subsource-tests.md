@@ -75,3 +75,29 @@ cd sublink-test/.sublink && /path/sublink-<arch> run --port 8002
 
 * A/B 全绿 + C 端到端跑通 + D 无回归 → 认为通过，文档移至 `docs/done/`
 * 任一环节失败 → 记录到 `docs/rejected/` 并附失败输出
+
+---
+
+## F. 集成测试结果（本地副本实例，2026-10-14）
+
+在 Pi 上用线上 DB 的只读副本跑补丁版二进制（`:8002`，`systemd --user` 临时单元），
+`source_it_v2.py` 覆盖 9 组场景，**18/18 通过**：
+
+| # | 场景 | 结果 |
+|---|------|------|
+| 1 | 登记源 → 请求订阅触发抓取（`LastAt` 前进） | ✅ |
+| 2 | 源节点归属该源、出现在订阅输出、无重名 | ✅ |
+| 3 | 间隔内再请求 → 零抓取（`LastAt` 不变）、内容一致 | ✅ |
+| 4 | `source/refresh` 强制刷新 | ✅ |
+| 5 | 源地址不可达 → 订阅仍 200、旧节点保留、状态标失败（fail-open） | ✅ |
+| 6 | 恢复地址 → 恢复正常 | ✅ |
+| 7 | 其它 3 个订阅（sublink-x / frontend-server / 共享）无回归 | ✅ |
+| 8 | 删源（delNodes=true）→ 接管来的原有节点不被误删 | ✅ |
+
+**踩坑记录（写进 skill）**
+
+* 请求订阅做验证时必须用 **clash 系 UA**（如 `clash-verge/v2.0.0`）。
+  `mihomo/1.19.31` 不含 `clash` → 面板按 UA 分发返回 base64，断言 clash 格式会假失败。
+* 本地实例用 `systemd-run --user --unit=... --collect` 起，日志看 `journalctl --user -u ...`；
+  用 `&`/`nohup`/`setsid` 起的后台进程在本机环境下会被回收。
+* 记 curl 前先 `unset http_proxy https_proxy`，否则 localhost 请求会走 mihomo 代理返回 502。
